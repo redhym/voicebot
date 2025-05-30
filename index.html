@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Bot - Gas Order Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 500px;
+            width: 90%;
+            display: flex; /* Added display flex */
+            flex-direction: column; /* Stack children vertically */
+            gap: 20px; /* Spacing between elements */
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status {
+            margin-bottom: 30px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 1.1em;
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .mic-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            font-size: 2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .mic-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .mic-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .mic-button.listening {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            animation: pulse 1.5s infinite;
+        }
+
+        .mic-button.speaking {
+            box-shadow: 0 0 20px 5px #4ecdc4;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+
+        .text-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .send-button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+        }
+
+        .transcript {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .response {
+            background: rgba(78, 205, 196, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: pre-line;
+            text-align: left;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .order-status {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .browser-warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid rgba(255, 193, 7, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid rgba(255, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .success {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid rgba(0, 255, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .mic-button {
+                width: 100px;
+                height: 100px;
+                font-size: 1.5em;
+            }
+            
+            .controls {
+                gap: 5px;
+            }
+            
+            .btn {
+                padding: 8px 15px;
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Voice Bot Assistant</h1>
+        
+        <div id="browserWarning" class="browser-warning" style="display: none;">
+            <strong>⚠️ Voice recognition not supported in this browser.</strong><br>
+            Please use Chrome, Edge, or Safari for voice features, or use text input below.
+        </div>
+        
+        <div class="status" id="status" role="status">Initializing...</div>
+        
+        <div class="input-container">
+            <button class="mic-button" id="micButton" aria-label="Start voice input">🎤</button>
+            
+            <input type="text" class="text-input" id="textInput" placeholder="Or type your message here..." aria-label="Text input">
+            <button class="send-button" id="sendButton">Send Message</button>
+        </div>
+        
+        <div class="transcript" id="transcript">Your speech will appear here...</div>
+        
+        <div class="response" id="response">Bot response will appear here...</div>
+        
+        <div class="controls">
+            <button class="btn" onclick="clearHistory()">Clear</button>
+            <button class="btn" onclick="testConnection()">Test Connection</button>
+            <button class="btn" onclick="toggleAudio()">🔊 Audio</button>
+            <button class="btn" onclick="downloadHistory()">📥 Download</button>
+        </div>
+        
+        <div class="order-status" id="orderStatus" style="display: none;">
+            <h3>Current Orders:</h3>
+            <div id="orderList"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let voiceBot;
+
+        // Global functions for UI controls
+        function clearHistory() {
+            document.getElementById('transcript').textContent = 'Your speech will appear here...';
+            document.getElementById('response').textContent = 'Bot response will appear here...';
+            
+            if (voiceBot) {
+                voiceBot.conversationHistory = [];
+                voiceBot.orders = [];
+                voiceBot.conversationState = 'idle';
+                voiceBot.currentOrder = {};
+                voiceBot.updateOrderDisplay();
+                voiceBot.updateStatus('History cleared - Ready to help!');
+            }
+        }
+
+        async function testConnection() {
+            if (voiceBot) {
+                voiceBot.updateStatus('Testing connection...');
+                await voiceBot.testBackendConnection();
+                voiceBot.updateStatus('Connection test complete');
+            }
+        }
+
+        function toggleAudio() {
+            if (voiceBot) {
+                voiceBot.audioEnabled = !voiceBot.audioEnabled;
+                voiceBot.saveUserPreferences();
+                
+                const audioButton = document.querySelector('.btn:nth-child(3)');
+                if (audioButton) {
+                    audioButton.textContent = voiceBot.audioEnabled ? '🔊 Audio' : '🔇 Audio';
+                }
+                
+                const message = voiceBot.audioEnabled ? 'Audio enabled' : 'Audio disabled';
+                voiceBot.updateStatus(message);
+            }
+        }
+
+        function downloadHistory() {
+            if (voiceBot && voiceBot.conversationHistory.length > 0) {
+                const data = {
+                    sessionId: voiceBot.sessionId,
+                    timestamp: new Date().toISOString(),
+                    conversationHistory: voiceBot.conversationHistory,
+                    orders: voiceBot.orders
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `voice-bot-session-${voiceBot.sessionId}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                voiceBot.showSuccess('Conversation history downloaded');
+            } else {
+                alert('No conversation history to download');
+            }
+        }
+
+        // Production Voice Bot Class Definition
+        class ProductionVoiceBot {
+            constructor() {
+                this.config = {
+                    apiEndpoint: this.getApiEndpoint(), // Now calls a class method
+                    enableLogging: true,
+                    maxRetries: 3,
+                    timeout: 10000,
+                    supportedBrowsers: ['Chrome', 'Edge', 'Safari']
+                };
+                
+                this.recognition = null;
+                this.synthesis = window.speechSynthesis;
+                this.isListening = false;
+                this.audioEnabled = true;
+                this.orders = [];
+                this.currentOrderId = this.generateOrderId();
+                this.conversationState = 'idle';
+                this.currentOrder = {};
+                this.sessionId = this.generateSessionId();
+                this.conversationHistory = [];
+                this.localLogs = [];
+                this.voices = [];
+                this.selectedVoice = null;
+                
+                this.initializeBot();
+            }
+
+            // Moved getApiEndpoint inside the class as a method
+            getApiEndpoint() {
+                const isProduction = location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
+                
+                if (isProduction) {
+                    // TODO: Replace with your actual production API endpoint
+                    return 'https://api.yourcompany.com/v1'; // Change this to your real API
+                }
+                
+                return window.location.protocol === 'https:' 
+                    ? 'https://localhost:3001/api' 
+                    : 'http://localhost:3000/api';
+            }
+
+            async makeApiCall(endpoint, options = {}) {
+                const maxRetries = this.config.maxRetries;
+                let lastError;
+                
+                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
+                        
+                        const response = await fetch(`${this.config.apiEndpoint}${endpoint}`, {
+                            ...options,
+                            signal: controller.signal,
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Session-ID': this.sessionId,
+                                ...options.headers
+                            }
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        
+                        return await response.json();
+                        
+                    } catch (error) {
+                        lastError = error;
+                        console.warn(`API call attempt ${attempt} failed:`, error.message);
+                        
+                        if (attempt < maxRetries && error.name !== 'AbortError') {
+                            // Exponential backoff: wait 1s, 2s, 4s between retries
+                            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
+                            continue;
+                        }
+                        
+                        break;
+                    }
+                }
+                
+                // All retries failed - handle gracefully
+                console.error('All API attempts failed:', lastError);
+                throw new Error('Service temporarily unavailable. Please try again later.');
+            }
+
+            generateOrderId() {
+                return 'ORD-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 5).toUpperCase();
+            }
+
+            generateSessionId() {
+                return 'SES-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 8).toUpperCase();
+            }
+
+            async initializeBot() {
+                try {
+                    this.updateStatus('Initializing voice bot...');
+                    
+                    // Check HTTPS requirement
+                    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                        this.showError('Voice features require HTTPS. Please use a secure connection.');
+                    }
+                    
+                    // Initialize speech recognition
+                    this.initSpeechRecognition();
+                    
+                    // Initialize text-to-speech
+                    this.initTextToSpeech();
+                    
+                    // Bind events
+                    this.bindEvents();
+                    
+                    // Load user preferences
+                    this.loadUserPreferences();
+                    
+                    // Test backend connection
+                    await this.testBackendConnection();
+                    
+                    this.updateStatus('Ready to help you with gas orders!');
+                    
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                    this.showError('Failed to initialize voice bot. Some features may not work.');
+                    this.updateStatus('Limited functionality available');
+                }
+            }
+
+            initSpeechRecognition() {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                
+                if (!SpeechRecognition) {
+                    document.getElementById('browserWarning').style.display = 'block';
+                    document.getElementById('micButton').disabled = true;
+                    this.updateStatus('Voice input not supported - using text input only');
+                    return;
+                }
+
+                this.recognition = new SpeechRecognition();
+                this.recognition.continuous = false;
+                this.recognition.interimResults = false;
+                this.recognition.lang = 'en-US';
+                this.recognition.maxAlternatives = 1;
+
+                this.recognition.onstart = () => {
+                    this.isListening = true;
+                    this.updateStatus('🎤 Listening... Speak now');
+                    document.getElementById('micButton').classList.add('listening');
+                    document.getElementById('micButton').innerHTML = '🛑';
+                };
+
+                this.recognition.onend = () => {
+                    this.isListening = false;
+                    this.updateStatus('Ready to listen');
+                    document.getElementById('micButton').classList.remove('listening');
+                    document.getElementById('micButton').innerHTML = '🎤';
+                };
+
+                this.recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    const confidence = event.results[0][0].confidence;
+                    
+                    if (confidence > 0.3) {
+                        this.handleUserInput(transcript, 'voice');
+                    } else {
+                        this.showError('Sorry, I didn\'t catch that clearly. Please try again.');
+                    }
+                };
+
+                this.recognition.onerror = (event) => {
+                    this.isListening = false;
+                    document.getElementById('micButton').classList.remove('listening');
+                    document.getElementById('micButton').innerHTML = '🎤';
+                    
+                    const errorMessages = {
+                        'network': 'Network error. Please check your connection.',
+                        'not-allowed': 'Microphone access denied. Please allow microphone access.',
+                        'no-speech': 'No speech detected. Please try again.',
+                        'audio-capture': 'Microphone not found. Please check your microphone.',
+                        'service-not-allowed': 'Speech service not allowed.'
+                    };
+                    
+                    const message = errorMessages[event.error] || `Error: ${event.error}`;
+                    this.showError(message);
+                };
+            }
+
+            initTextToSpeech() {
+                if (this.synthesis) {
+                    // Wait for voices to load
+                    const loadVoices = () => {
+                        this.voices = this.synthesis.getVoices();
+                        this.selectedVoice = this.selectBestVoice();
+                    };
+
+                    if (this.synthesis.onvoiceschanged !== undefined) {
+                        this.synthesis.onvoiceschanged = loadVoices;
+                    }
+                    
+                    loadVoices(); // Also call immediately in case voices are already loaded
+                }
+            }
+
+            selectBestVoice() {
+                const preferredVoices = [
+                    'Google US English',
+                    'Microsoft Zira - English (United States)',
+                    'Samantha',
+                    'Alex',
+                    'Karen'
+                ];
+                
+                for (const voiceName of preferredVoices) {
+                    const voice = this.voices.find(v => v.name.includes(voiceName));
+                    if (voice) return voice;
+                }
+                
+                // Fallback to any English voice
+                return this.voices.find(v => v.lang.includes('en')) || this.voices[0];
+            }
+
+            bindEvents() {
+                // Microphone button
+                document.getElementById('micButton').addEventListener('click', () => {
+                    this.toggleListening();
+                });
+
+                // Text input
+                const textInput = document.getElementById('textInput');
+                const sendButton = document.getElementById('sendButton');
+                
+                sendButton.addEventListener('click', () => {
+                    this.handleTextInput();
+                });
+                
+                textInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.handleTextInput();
+                    }
+                });
+
+                // Auto-resize text input
+                textInput.addEventListener('input', (e) => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                });
+            }
+
+            toggleListening() {
+                if (!this.recognition) {
+                    this.showError('Voice recognition not available in this browser');
+                    return;
+                }
+
+                if (this.isListening) {
+                    this.recognition.stop();
+                } else {
+                    try {
+                        this.recognition.start();
+                    } catch (error) {
+                        this.showError('Could not start voice recognition. Please try again.');
+                    }
+                }
+            }
+
+            handleTextInput() {
+                const textInput = document.getElementById('textInput');
+                const text = textInput.value.trim();
+                
+                if (text) {
+                    this.handleUserInput(text, 'text');
+                    textInput.value = '';
+                    textInput.style.height = 'auto';
+                }
+            }
+
+            async handleUserInput(input, inputType) {
+                try {
+                    // Display user input
+                    document.getElementById('transcript').textContent = input;
+                    
+                    // Add to conversation history
+                    this.conversationHistory.push({
+                        timestamp: new Date().toISOString(),
+                        type: 'user',
+                        content: input,
+                        inputType: inputType
+                    });
+                    
+                    // Show loading state
+                    this.updateStatus('Processing...');
+                    document.getElementById('response').innerHTML = '<div class="loading"></div> Thinking...';
+                    
+                    // Process the input
+                    const response = await this.processUserInput(input);
+                    
+                    // Display response
+                    this.displayResponse(response);
+                    
+                    // Speak response if audio is enabled
+                    if (this.audioEnabled) {
+                        this.speak(response);
+                    }
+                    
+                    // Log interaction
+                    await this.logInteraction(input, response, inputType);
+                    
+                    this.updateStatus('Ready for next input');
+                    
+                } catch (error) {
+                    console.error('Error handling user input:', error);
+                    const errorResponse = 'Sorry, I encountered an error. Please try again.';
+                    this.displayResponse(errorResponse);
+                    this.updateStatus('Error occurred - ready to try again');
+                }
+            }
+
+            async processUserInput(text) {
+                if (!text || typeof text !== 'string') {
+                    return "I didn't receive any input. Could you please try again?";
+                }
+                try {
+                    // Input sanitization
+                    const sanitizedText = text.trim().replace(/[<>]/g, '');
+                    
+                    if (!sanitizedText) {
+                        return "I didn't catch that. Could you please repeat your request?";
+                    }
+                    
+                    const lowerText = sanitizedText.toLowerCase();
+                    
+                    // Handle conversation flow based on current state
+                    switch (this.conversationState) {
+                        case 'awaiting_account':
+                            return this.handleAccountNumber(sanitizedText);
+                        case 'awaiting_size':
+                            return this.handleGasSize(sanitizedText);
+                        case 'awaiting_quantity':
+                            return this.handleQuantity(sanitizedText);
+                        case 'awaiting_delivery':
+                            return this.handleDeliveryTime(sanitizedText);
+                        case 'awaiting_confirmation':
+                            return this.handleOrderConfirmation(sanitizedText);
+                        case 'awaiting_final_response':
+                            return this.handleFinalResponse(sanitizedText);
+                        default:
+                            return this.handleInitialIntent(lowerText);
+                    }
+                } catch (error) {
+                    console.error('Error processing user input:', error);
+                    return "I'm sorry, I encountered an issue processing your request. Could you please try again?";
+                }
+            }
+
+            handleInitialIntent(text) {
+                // Greeting
+                if (text.includes('hello') || text.includes('hi') || text.includes('hey')) {
+                    return "Hello! Welcome to iTouch Gas Services. I'm your virtual assistant. How can I help you today? I can help you place gas orders, check order status, or connect you with customer service.";
+                }
+                
+                // Order gas
+                if (text.includes('order gas') || text.includes('buy gas') || text.includes('gas delivery') || text.includes('like to order')) {
+                    return this.startGasOrder();
+                }
+                
+                // Order status
+                if (text.includes('order status') || text.includes('my order') || text.includes('check order')) {
+                    return this.handleOrderStatus();
+                }
+                
+                // Human transfer
+                if (text.includes('speak to human') || text.includes('human agent') || text.includes('customer service') || text.includes('representative')) {
+                    return this.handleHumanTransfer();
+                }
+                
+                // Cancel order
+                if (text.includes('cancel order') || text.includes('delete order')) {
+                    return this.cancelOrder();
+                }
+                
+                // Help
+                if (text.includes('help') || text.includes('what can you do')) {
+                    return "I can help you with:\n• Placing new gas orders\n• Checking order status\n• Canceling or modifying orders\n• Connecting you with customer service\n\nWhat would you like to do?";
+                }
+                
+                // Default response
+                return "I can help you with gas orders, checking order status, or connecting you with customer service. What would you like to do today?";
+            }
+
+            startGasOrder() {
+                this.conversationState = 'awaiting_account';
+                this.currentOrder = { 
+                    id: this.generateOrderId(),
+                    startTime: new Date().toISOString()
+                };
+                return "I'd be happy to help you place a gas order. Can I please get your account number?";
+            }
+
+            handleAccountNumber(text) {
+            const cleanText = text.replace(/[^\d]/g, '');
+            const accountMatch = cleanText.match(/\d{4,12}/);
+            
+            if (!accountMatch) {
+                return "I need a valid account number with at least 4 digits. Please provide your account number again.";
+            }
+            
+            const accountNumber = accountMatch[0];
+            
+            // Enhanced validation
+            if (accountNumber.length < 4 || accountNumber.length > 12) {
+                return "Account number should be between 4 and 12 digits. Please provide your correct account number.";
+            }
+            
+            // Check for obviously invalid patterns
+            if (/^(.)\1+$/.test(accountNumber)) { // All same digits
+                return "That account number doesn't look valid. Please double-check and provide your correct account number.";
+            }
+            
+            this.currentOrder.accountNumber = accountNumber;
+            this.conversationState = 'awaiting_size';
+            return `Thank you. Account ${accountNumber.substr(-4).padStart(accountNumber.length, '*')} confirmed. What size gas cylinder would you like? We have 9kg, 15kg, and 45kg cylinders available.`;
+        }
+
+            handleGasSize(text) {
+                const lowerText = text.toLowerCase();
+                let size = '';
+                
+                if (lowerText.includes('9') || lowerText.includes('nine')) {
+                    size = '9kg';
+                } else if (lowerText.includes('15') || lowerText.includes('fifteen')) {
+                    size = '15kg';
+                } else if (lowerText.includes('45') || lowerText.includes('forty five') || lowerText.includes('forty-five')) {
+                    size = '45kg';
+                } else {
+                    return "I didn't catch that size. Please choose from 9kg, 15kg, or 45kg gas cylinders.";
+                }
+                
+                this.currentOrder.size = size;
+                this.conversationState = 'awaiting_quantity';
+                return `Perfect! ${size} cylinder selected. How many would you like to order?`;
+            }
+
+            handleQuantity(text) {
+                const numberWords = {
+                    'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+                    'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+                    'eleven': 11, 'twelve': 12, 'fifteen': 15, 'twenty': 20
+                };
+                
+                let quantity = 0;
+                const numberMatch = text.match(/\d+/);
+                const wordMatch = text.toLowerCase().match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\b/);
+                
+                if (numberMatch) {
+                    quantity = parseInt(numberMatch[0]);
+                } else if (wordMatch) {
+                    quantity = numberWords[wordMatch[0]];
+                }
+                
+                // Validation
+                if (quantity === 0) {
+                    return "I didn't catch a valid quantity. Please tell me how many cylinders you'd like (for example: 'two' or '2').";
+                }
+                
+                if (quantity < 1) {
+                    return "Please specify at least 1 cylinder for your order.";
+                }
+                
+                if (quantity > 50) {
+                    return "For orders over 50 cylinders, please contact our business sales team at 1-800-GAS-BUSINESS. What quantity would you like for today's order?";
+                }
+                
+                // Confirm unusual quantities
+                if (quantity > 10) {
+                    this.currentOrder.quantity = quantity;
+                    this.conversationState = 'awaiting_delivery';
+                    return `That's quite a large order - ${quantity} ${this.currentOrder.size} cylinders. When would you like this delivered? Please note that large orders may require special delivery arrangements.`;
+                }
+                
+                this.currentOrder.quantity = quantity;
+                this.conversationState = 'awaiting_delivery';
+                return `Great! ${quantity} ${this.currentOrder.size} cylinder${quantity > 1 ? 's' : ''}. When would you like this delivered?`;
+            }
+
+            async handleDeliveryTime(text) {
+                const lowerText = text.toLowerCase();
+                let deliveryTime = this.parseDeliveryTime(lowerText);
+                
+                if (!deliveryTime) {
+                    return "I didn't catch that delivery date. You can say 'today', 'tomorrow', a day of the week like 'Monday', or a specific date like 'December 25th'.";
+                }
+                
+                this.currentOrder.deliveryTime = deliveryTime;
+                this.currentOrder.status = 'Processing';
+                this.currentOrder.timestamp = new Date().toISOString();
+                this.currentOrder.estimatedPrice = this.calculatePrice(this.currentOrder.size, this.currentOrder.quantity);
+                
+                // Try to submit to backend
+                try {
+                    const backendResponse = await this.submitOrderToBackend(this.currentOrder);
+                    if (backendResponse.offline) {
+                        this.currentOrder.status = 'Pending Confirmation (Offline)';
+                    } else {
+                        this.currentOrder.status = 'Pending Confirmation';
+                        this.currentOrder.backendOrderId = backendResponse.orderId;
+                    }
+                } catch (error) {
+                    this.currentOrder.status = 'Pending Confirmation (Offline)';
+                    console.warn('Order submission failed, continuing offline:', error);
+                }
+
+                this.orders.push(this.currentOrder);
+                this.updateOrderDisplay();
+                this.conversationState = 'awaiting_confirmation';
+                return `Perfect! Here's your order summary:
+- ${this.currentOrder.quantity} × ${this.currentOrder.size} cylinder${this.currentOrder.quantity > 1 ? 's' : ''}
+- Delivery: ${deliveryTime}
+- Account: ***${this.currentOrder.accountNumber.slice(-4)}
+- Estimated cost: $${this.currentOrder.estimatedPrice}
+- Order ID: ${this.currentOrder.id}
+
+Please confirm this order by saying 'confirm' or 'yes'.`;
+            }
+            async submitOrderToBackend(orderData) {
+                try {
+                    const response = await this.makeApiCall('/orders', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            sessionId: this.sessionId,
+                            order: orderData,
+                            timestamp: new Date().toISOString()
+                        })
+                    });
+                    
+                    if (response && response.orderId) {
+                        orderData.backendOrderId = response.orderId;
+                        orderData.trackingUrl = response.trackingUrl;
+                        return response;
+                    }
+                    
+                    throw new Error('Invalid order response');
+                    
+                } catch (error) {
+                    console.warn('Failed to submit order to backend:', error);
+                    // Continue with local order processing
+                    return { orderId: orderData.id, offline: true };
+                }
+            }
+
+            parseDeliveryTime(text) {
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                
+                if (text.includes('today')) return 'Today';
+                if (text.includes('tomorrow')) return 'Tomorrow';
+                
+                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                for (const day of days) {
+                    if (text.includes(day)) {
+                        return day.charAt(0).toUpperCase() + day.slice(1);
+                    }
+                }
+                
+                // Try to parse specific dates
+                const datePatterns = [
+                    /(\d{1,2})\s*(st|nd|rd|th)?\s*(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i,
+                    /(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s*(\d{1,2})/i
+                ];
+                
+                for (const pattern of datePatterns) {
+                    const match = text.match(pattern);
+                    if (match) {
+                        return this.formatDeliveryDate(match);
+                    }
+                }
+                
+                return null;
+            }
+
+            formatDeliveryDate(match) {
+                const monthNames = {
+                    'jan': 'January', 'january': 'January', 'feb': 'February', 'february': 'February',
+                    'mar': 'March', 'march': 'March', 'apr': 'April', 'april': 'April',
+                    'may': 'May', 'jun': 'June', 'june': 'June', 'jul': 'July', 'july': 'July',
+                    'aug': 'August', 'august': 'August', 'sep': 'September', 'september': 'September',
+                    'oct': 'October', 'october': 'October', 'nov': 'November', 'november': 'November',
+                    'dec': 'December', 'december': 'December'
+                };
+                
+                if (match[3]) {
+                    const month = monthNames[match[3].toLowerCase()] || match[3];
+                    return `${month} ${match[1]}`;
+                } else if (match[2]) {
+                    const month = monthNames[match[1].toLowerCase()] || match[1];
+                    return `${month} ${match[2]}`;
+                }
+                
+                return match[0];
+            }
+
+            calculatePrice(size, quantity) {
+                const prices = { '9kg': 25, '15kg': 35, '45kg': 65 };
+                const basePrice = prices[size] || 25;
+                const total = basePrice * quantity;
+                
+                // Add delivery fee for small orders
+                const deliveryFee = total < 100 ? 10 : 0;
+                
+                return (total + deliveryFee).toFixed(2);
+            }
+
+            async handleOrderConfirmation(text) {
+                const lowerText = text.toLowerCase();
+                
+                if (lowerText.includes('confirmed') || lowerText.includes('confirm') || 
+                    lowerText.includes('yes') || lowerText.includes('done') || 
+                    lowerText.includes('approved')) {
+                    
+                    this.currentOrder.status = 'Confirmed';
+                    this.conversationState = 'awaiting_final_response';
+                    this.updateOrderDisplay();
+                    
+                    return `Excellent! Your order #${this.currentOrder.id} has been confirmed. You'll receive an SMS confirmation shortly with tracking details. Is there anything else I can help you with today?`;
+                    
+                } else if (lowerText.includes('no') || lowerText.includes('cancel') || 
+                          lowerText.includes('reject')) {
+                    
+                    this.orders.pop(); // Remove the order
+                    this.conversationState = 'idle';
+                    this.updateOrderDisplay();
+                    
+                    return "No problem, I've cancelled that order. Would you like to place a different order or is there anything else I can help you with?";
+                    
+                } else {
+                    return "Please let me know if you've confirmed the order in your app, or say 'cancel' if you'd like to cancel this order.";
+                }
+            }
+
+            handleFinalResponse(text) {
+                const lowerText = text.toLowerCase();
+                
+                if (lowerText.includes('no') || lowerText.includes('nothing') || 
+                    lowerText.includes('that\'s it') || lowerText.includes('all good') ||
+                    lowerText.includes('no thank you')) {
+                    
+                    this.conversationState = 'idle';
+                    return "Thank you for choosing iTouch Gas Services! Have a wonderful day, and we'll see you soon for your delivery!";
+                    
+                } else {
+                    return this.handleInitialIntent(lowerText);
+                }
+            }
+
+            handleOrderStatus() {
+                if (this.orders.length === 0) {
+                    return "You don't have any current orders. Would you like to place a new gas order?";
+                }
+                
+                const recentOrder = this.orders[this.orders.length - 1];
+                return `Your most recent order #${recentOrder.id} for ${recentOrder.quantity} × ${recentOrder.size} cylinder${recentOrder.quantity > 1 ? 's' : ''} is ${recentOrder.status.toLowerCase()}. Delivery scheduled for ${recentOrder.deliveryTime}.`;
+            }
+
+            handleHumanTransfer() {
+                return "I'll connect you with our customer service team. Please hold while I transfer your call. You can also call us directly at 1-800-GAS-HELP or visit our website for live chat support.";
+            }
+
+            cancelOrder() {
+                if (this.orders.length === 0) {
+                    return "You don't have any current orders to cancel.";
+                }
+                
+                const lastOrder = this.orders[this.orders.length - 1];
+                if (lastOrder.status === 'Confirmed') {
+                    this.orders.pop();
+                    this.updateOrderDisplay();
+                    return `I've cancelled your order #${lastOrder.id}. You'll receive a confirmation SMS shortly. Is there anything else I can help you with?`;
+                } else {
+                    return "Your most recent order is still pending. Would you like me to remove it?";
+                }
+            }
+
+            displayResponse(response) {
+                const responseDiv = document.getElementById('response');
+                responseDiv.textContent = response;
+                
+                // Add to conversation history
+                this.conversationHistory.push({
+                    timestamp: new Date().toISOString(),
+                    type: 'bot',
+                    content: response
+                });
+                
+                // Scroll into view if needed
+                responseDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            speak(text) {
+                if (!this.synthesis || !this.audioEnabled) return;
+                
+                // Cancel any ongoing speech
+                this.synthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.voice = this.selectedVoice;
+                utterance.rate = 0.9;
+                utterance.pitch = 1;
+                utterance.volume = 0.8;
+                
+                utterance.onstart = () => {
+                    document.getElementById('micButton').classList.add('speaking');
+                };
+                
+                utterance.onend = () => {
+                    document.getElementById('micButton').classList.remove('speaking');
+                };
+                
+                utterance.onerror = (event) => {
+                    console.error('Speech synthesis error:', event);
+                    document.getElementById('micButton').classList.remove('speaking');
+                };
+                
+                this.synthesis.speak(utterance);
+            }
+
+            updateStatus(message) {
+                document.getElementById('status').textContent = message;
+            }
+
+            showError(message, isTemporary = true) {
+                // User-friendly error messages
+                const friendlyMessages = {
+                    'Network error': 'Connection issue - please check your internet and try again.',
+                    'Service temporarily unavailable': 'Our service is temporarily busy. Please try again in a moment.',
+                    'Microphone access denied': 'Please allow microphone access to use voice features.',
+                    'No speech detected': 'I didn\'t hear anything. Please try speaking again.',
+                    'Audio capture error': 'Microphone issue detected. Please check your microphone.'
+                };
+                
+                const displayMessage = friendlyMessages[message] || message;
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.innerHTML = `<strong>⚠️</strong> ${displayMessage}`;
+                
+                const container = document.querySelector('.container');
+                container.insertBefore(errorDiv, document.getElementById('status'));
+                
+                if (isTemporary) {
+                    setTimeout(() => {
+                        if (errorDiv.parentNode) {
+                            errorDiv.parentNode.removeChild(errorDiv);
+                        }
+                    }, 5000);
+                }
+                
+                // Also log the error
+                console.warn('User error displayed:', message);
+            }
+
+            showSuccess(message) {
+                const successDiv = document.createElement('div');
+                successDiv.className = 'success';
+                successDiv.textContent = message;
+                
+                const container = document.querySelector('.container');
+                container.insertBefore(successDiv, document.getElementById('status'));
+                
+                setTimeout(() => {
+                    if (successDiv.parentNode) {
+                        successDiv.parentNode.removeChild(successDiv);
+                    }
+                }, 3000);
+            }
+
+            updateOrderDisplay() {
+                const orderStatusDiv = document.getElementById('orderStatus');
+                const orderListDiv = document.getElementById('orderList');
+                
+                if (this.orders.length === 0) {
+                    orderStatusDiv.style.display = 'none';
+                    return;
+                }
+                
+                orderStatusDiv.style.display = 'block';
+                orderListDiv.innerHTML = '';
+                
+                this.orders.forEach(order => {
+                    const orderItem = document.createElement('div');
+                    orderItem.className = 'order-item';
+                    orderItem.innerHTML = `
+                        <span>Order #${order.id}</span>
+                        <span>${order.quantity} × ${order.size}</span>
+                        <span>${order.status}</span>
+                    `;
+                    orderListDiv.appendChild(orderItem);
+                });
+            }
+
+            async testBackendConnection() {
+                try {
+                    this.updateStatus('Connecting to iTouch Gas Services...');
+                    
+                    const healthCheck = await this.makeApiCall('/health', {
+                        method: 'GET'
+                    });
+                    
+                    if (healthCheck && healthCheck.status === 'ok') {
+                        this.showSuccess('✅ Connected to iTouch Gas Services');
+                        return true;
+                    } else {
+                        throw new Error('Invalid health check response');
+                    }
+                    
+                } catch (error) {
+                    console.warn('Backend connection test failed:', error.message);
+                    
+                    // Show appropriate message based on error type
+                    if (error.message.includes('fetch')) {
+                        this.updateStatus('⚠️ Working in offline mode - Limited functionality');
+                    } else {
+                        this.updateStatus('⚠️ Service partially available - Voice bot ready');
+                    }
+                    
+                    return false;
+                }
+            }
+
+            async logInteraction(input, response, inputType) {
+                try {
+                    const logData = {
+                        sessionId: this.sessionId,
+                        timestamp: new Date().toISOString(),
+                        userInput: input,
+                        botResponse: response,
+                        inputType: inputType,
+                        conversationState: this.conversationState,
+                        currentOrder: this.currentOrder ? { ...this.currentOrder } : null
+                    };
+                    
+                    if (this.config.enableLogging) {
+                        // Try to send to backend
+                        try {
+                            await this.makeApiCall('/interactions/log', {
+                                method: 'POST',
+                                body: JSON.stringify(logData)
+                            });
+                        } catch (error) {
+                            // Store locally if backend unavailable
+                            this.storeLogLocally(logData);
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.warn('Failed to log interaction:', error);
+                }
+            }
+
+            storeLogLocally(logData) {
+                // Store in memory instead of localStorage
+                if (!this.localLogs) this.localLogs = [];
+                this.localLogs.push(logData);
+                
+                // Keep only last 100 interactions
+                if (this.localLogs.length > 100) {
+                    this.localLogs.splice(0, this.localLogs.length - 100);
+                }
+            }
+            loadUserPreferences() {
+                // Use default preferences since localStorage not available
+                this.audioEnabled = true;
+                
+                // Update UI
+                const audioButton = document.querySelector('.btn:nth-child(3)');
+                if (audioButton) {
+                    audioButton.textContent = this.audioEnabled ? '🔊 Audio' : '🔇 Audio';
+                }
+            }
+
+            saveUserPreferences() {
+                // Preferences saved in memory only
+                console.log('Audio preference saved:', this.audioEnabled);
+            }
+        }
+
+        // Initialize the voice bot when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            voiceBot = new ProductionVoiceBot();
+        });
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && voiceBot && voiceBot.synthesis) {
+                voiceBot.synthesis.cancel();
+            }
+        });
+
+        // Handle beforeunload
+        window.addEventListener('beforeunload', () => {
+            if (voiceBot && voiceBot.synthesis) {
+                voiceBot.synthesis.cancel();
+            }
+        });
+    </script>
+</body>
+</html>
